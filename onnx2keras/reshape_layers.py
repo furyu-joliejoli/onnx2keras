@@ -170,6 +170,16 @@ def convert_reshape(node, params, layers, lambda_func, node_name, keras_name):
                     lambda_layer = keras.layers.Lambda(target_layer, name="%s_CHW" % keras_name)
                     layers[node_name] = lambda_layer(input_0)
                     lambda_func[keras_name] = target_layer
+                elif node.name == 'Reshape_650':
+                    # reshap op before fc layer has different axis, so attach transpose to [0, 3, 1, 2]
+                    def target_layer(x):
+                        import tensorflow as tf
+                        x = tf.transpose(x, [0, 3, 1, 2])
+                        return x
+
+                    lambda_layer = keras.layers.Lambda(target_layer, name="%s_CHW" % keras_name)
+                    layers[node_name] = lambda_layer(input_0)
+                    lambda_func[keras_name] = target_layer
                 else:
                     layers[node_name] = input_0
 
