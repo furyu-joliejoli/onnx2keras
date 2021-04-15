@@ -124,6 +124,14 @@ def onnx_to_keras(onnx_model, input_names,
         node_params['name_policy'] = name_policy
 
         node_name = str(node.output[0])
+
+        # tf GAP apply to axis -1
+        if node.op_type == 'GlobalAveragePool':
+            node_params['expand_axis'] = -1
+        # transpose has [0, 2, 3, 1] not [0, 3, 2, 1] before reshape to 2 dimension
+        if 'perm' in node_params and node_params['perm'] == [0, 3, 2, 1]:
+            node_params['perm'] = [0, 2, 3, 1]
+
         keras_names = []
         for output_index, output in enumerate(node.output):
             if name_policy == 'short':
@@ -266,6 +274,9 @@ def onnx_to_keras(onnx_model, input_names,
                             axes_map = np.array([0, 3, 1, 2])
                             # to list because some tf operations check only for core python types (e.g tf.norm)
                             dargs[i] = axes_map[axis].tolist()
+                    elif 'EXPAND' in layer['config']['name']:
+                        # change expand axis after GAP
+                        dargs = [1]
                     else:
                         # if map exits will change else will remain the same
                         dargs[0] = change_ord_axes_map.get(dargs[0], dargs[0])
@@ -276,10 +287,10 @@ def onnx_to_keras(onnx_model, input_names,
         keras.backend.set_image_data_format('channels_last')
         model_tf_ordering = keras.models.Model.from_config(conf)
 
-        for dst_layer, src_layer, conf in zip(model_tf_ordering.layers, model.layers, conf['layers']):
+        for dst_layer, src_layer, each_conf in zip(model_tf_ordering.layers, model.layers, conf['layers']):
             W = src_layer.get_weights()
             # TODO: check axes first (if it's not 4D tensor)
-            if conf['config'] and 'shared_axes' in conf['config']:
+            if each_conf['config'] and 'shared_axes' in each_conf['config']:
                 W[0] = W[0].transpose(1, 2, 0)
             dst_layer.set_weights(W)
 
