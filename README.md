@@ -7,6 +7,9 @@ ONNX to Keras deep neural network converter.
 [![Downloads](https://pepy.tech/badge/onnx2keras)](https://pepy.tech/project/onnx2keras)
 ![PyPI](https://img.shields.io/pypi/v/onnx2keras.svg)
 
+## Caution
+this repository is optimized for the resnest onnx to keras
+
 ## Requirements
 
 TensorFlow 2.0
